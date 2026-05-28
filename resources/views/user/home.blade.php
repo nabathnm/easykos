@@ -72,8 +72,8 @@
                 @forelse($kosans as $kosan)
                     <a href="{{ route('kosan.show', $kosan) }}"
                         class="nb-card nb-card-hover overflow-hidden">
-                        @if($kosan->fotoUtama)
-                            <img src="{{ asset('storage/' . $kosan->fotoUtama->foto) }}" alt="{{ $kosan->nama_kosan }}"
+                        @if(isset($kosan->foto_utama))
+                            <img src="{{ asset('storage/' . $kosan->foto_utama->foto) }}" alt="{{ $kosan->nama_kosan }}"
                                  class="h-48 w-full object-cover">
                         @else
                             <div class="flex h-48 items-center justify-center bg-[#E5E7EB] text-xl font-bold">

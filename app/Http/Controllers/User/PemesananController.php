@@ -15,28 +15,24 @@ class PemesananController extends Controller
      */
     public function dashboard()
     {
-        $pemesanans = Pemesanan::where('user_id', Auth::id())
-            ->with(['kosan.fotoUtama', 'kosan.pemilik'])
-            ->latest()
-            ->get();
+        $response = $this->apiCall('GET', 'pemesanan');
+        $pemesanans = json_decode(json_encode($response->json()['data'] ?? []));
 
         return view('user.dashboard', compact('pemesanans'));
     }
 
-    /**
-     * Daftar pemesanan user
-     */
     public function index()
     {
         return redirect()->route('user.dashboard');
     }
 
-    /**
-     * Form buat pemesanan baru
-     */
     public function create(Request $request)
     {
-        $kosan = Kosan::with(['fotoUtama', 'pemilik'])->findOrFail($request->kosan_id);
+        $kosanResp = $this->apiCall('GET', "kosan/{$request->kosan_id}");
+        if (!$kosanResp->successful()) {
+            return back()->with('error', 'Kosan tidak ditemukan.');
+        }
+        $kosan = json_decode(json_encode($kosanResp->json()['data']));
 
         if ($kosan->kamar_tersedia <= 0) {
             return back()->with('error', 'Maaf, kamar sudah penuh.');
@@ -45,70 +41,52 @@ class PemesananController extends Controller
         return view('user.pemesanan.create', compact('kosan'));
     }
 
-    /**
-     * Simpan pemesanan baru
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'kosan_id'      => 'required|exists:kosans,id',
+            'kosan_id'      => 'required',
             'tanggal_masuk' => 'required|date|after_or_equal:today',
             'durasi_bulan'  => 'required|integer|min:1|max:24',
             'catatan'       => 'nullable|string|max:500',
         ]);
 
-        $kosan = Kosan::findOrFail($request->kosan_id);
+        $response = $this->apiCall('POST', 'pemesanan', $request->all());
 
-        if ($kosan->kamar_tersedia <= 0) {
-            return back()->with('error', 'Maaf, kamar sudah penuh.')->withInput();
+        if ($response->successful()) {
+            $pemesananId = $response->json()['data']['id'];
+            return redirect()->route('user.pemesanan.show', $pemesananId)
+                ->with('success', 'Pemesanan berhasil diajukan! Menunggu persetujuan pemilik kos.');
         }
 
-        $totalHarga = $kosan->harga_per_bulan * $request->durasi_bulan;
-
-        $pemesanan = Pemesanan::create([
-            'user_id'       => Auth::id(),
-            'kosan_id'      => $kosan->id,
-            'tanggal_masuk' => $request->tanggal_masuk,
-            'durasi_bulan'  => $request->durasi_bulan,
-            'total_harga'   => $totalHarga,
-            'status'        => 'pending',
-            'catatan'       => $request->catatan,
-        ]);
-
-        return redirect()->route('user.pemesanan.show', $pemesanan)
-            ->with('success', 'Pemesanan berhasil diajukan! Menunggu persetujuan pemilik kos.');
+        $errorMsg = $response->json()['message'] ?? 'Maaf, kamar sudah penuh atau terjadi kesalahan.';
+        return back()->with('error', $errorMsg)->withInput();
     }
 
-    /**
-     * Detail pemesanan
-     */
-    public function show(Pemesanan $pemesanan)
+    public function show($id)
     {
-        if ($pemesanan->user_id !== Auth::id()) {
-            abort(403);
+        $response = $this->apiCall('GET', "pemesanan/{$id}");
+        
+        if (!$response->successful()) {
+            abort($response->status() === 403 ? 403 : 404);
         }
 
-        $pemesanan->load(['kosan.fotoUtama', 'kosan.pemilik']);
+        $pemesanan = json_decode(json_encode($response->json()['data']));
 
         return view('user.pemesanan.show', compact('pemesanan'));
     }
 
-    /**
-     * Batalkan pemesanan (hanya jika masih pending)
-     */
-    public function destroy(Pemesanan $pemesanan)
+    public function destroy($id)
     {
-        if ($pemesanan->user_id !== Auth::id()) {
-            abort(403);
+        $response = $this->apiCall('DELETE', "pemesanan/{$id}");
+        
+        if ($response->successful()) {
+            return redirect()->route('user.dashboard')
+                ->with('success', 'Pemesanan berhasil dibatalkan.');
         }
 
-        if ($pemesanan->status !== 'pending') {
-            return back()->with('error', 'Hanya pemesanan berstatus pending yang dapat dibatalkan.');
-        }
-
-        $pemesanan->update(['status' => 'dibatalkan']);
-
-        return redirect()->route('user.dashboard')
-            ->with('success', 'Pemesanan berhasil dibatalkan.');
+        $errorMsg = $response->json()['message'] ?? 'Gagal membatalkan pemesanan.';
+        if ($response->status() === 403) abort(403);
+        
+        return back()->with('error', $errorMsg);
     }
 }

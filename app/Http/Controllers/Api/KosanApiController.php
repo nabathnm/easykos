@@ -52,6 +52,13 @@ class KosanApiController extends Controller
         }
 
         // Filter opsional
+        if ($request->filled('q')) {
+            $query->where(function($q) use ($request) {
+                $q->where('nama_kosan', 'like', '%' . $request->q . '%')
+                  ->orWhere('kota', 'like', '%' . $request->q . '%')
+                  ->orWhere('alamat', 'like', '%' . $request->q . '%');
+            });
+        }
         if ($request->filled('kota')) {
             $query->where('kota', 'like', '%' . $request->kota . '%');
         }
@@ -144,14 +151,16 @@ class KosanApiController extends Controller
     )]
     public function store(Request $request)
     {
-        if (Auth::user()->role !== 'pemilik') {
+        $user = Auth::user();
+        if ($user->role !== 'pemilik' && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Hanya pemilik yang dapat menambah kosan',
+                'message' => 'Hanya pemilik atau admin yang dapat menambah kosan',
             ], 403);
         }
 
         $validator = Validator::make($request->all(), [
+            'user_id'        => 'sometimes|required|exists:users,id',
             'nama_kosan'     => 'required|string|max:255',
             'deskripsi'      => 'required|string',
             'alamat'         => 'required|string',
@@ -161,6 +170,7 @@ class KosanApiController extends Controller
             'kamar_tersedia' => 'required|integer|min:0',
             'tipe'           => 'required|in:putra,putri,campur',
             'fasilitas'      => 'nullable|array',
+            'fotos.*'        => 'image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -171,15 +181,30 @@ class KosanApiController extends Controller
             ], 422);
         }
 
+        $userId = $user->role === 'admin' ? $request->get('user_id', $user->id) : $user->id;
+
         $kosan = Kosan::create(array_merge($validator->validated(), [
-            'user_id' => Auth::id(),
-            'status'  => 'aktif',
+            'user_id' => $userId,
+            'status'  => $request->get('status', 'aktif'),
         ]));
+
+        if ($request->hasFile('fotos')) {
+            $is_utama = true;
+            foreach ($request->file('fotos') as $foto) {
+                $path = $foto->store('foto_kosan', 'public');
+                \App\Models\FotoKosan::create([
+                    'kosan_id' => $kosan->id,
+                    'foto' => $path,
+                    'is_utama' => $is_utama,
+                ]);
+                $is_utama = false;
+            }
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Kosan berhasil ditambahkan',
-            'data'    => $kosan,
+            'data'    => $kosan->load('fotos'),
         ], 201);
     }
 
