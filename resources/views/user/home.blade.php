@@ -70,7 +70,7 @@
 
             <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 @forelse($kosans as $kosan)
-                    <a href="{{ route('kosan.show', $kosan) }}"
+                    <a href="{{ route('kosan.show', $kosan->id) }}"
                         class="nb-card nb-card-hover overflow-hidden">
                         @if(isset($kosan->foto_utama))
                             <img src="{{ asset('storage/' . $kosan->foto_utama->foto) }}" alt="{{ $kosan->nama_kosan }}"

@@ -112,8 +112,9 @@ class KosanController extends Controller
 
     public function update(Request $request, Kosan $kosan)
     {
-        if ($kosan->user_id !== Auth::id())
+        if ($kosan->user_id !== Auth::id()) {
             abort(403);
+        }
 
         $request->validate([
             'nama_kosan' => 'required|string|max:255',
@@ -143,56 +144,72 @@ class KosanController extends Controller
             'fasilitas' => $request->fasilitas ?? [],
         ]);
 
-        // 1. Delete selected photos
+        // Hapus foto yang dipilih
         if ($request->has('hapus_fotos')) {
             $fotosToDelete = FotoKosan::whereIn('id', $request->hapus_fotos)
                 ->where('kosan_id', $kosan->id)
                 ->get();
+
             foreach ($fotosToDelete as $foto) {
                 Storage::disk('public')->delete($foto->foto);
                 $foto->delete();
             }
         }
 
-        // 2. Set main photo
+        // Atur ulang foto utama
         if ($request->has('foto_utama_id') && !in_array($request->foto_utama_id, $request->hapus_fotos ?? [])) {
             $kosan->fotos()->update(['is_utama' => false]);
-            $kosan->fotos()->where('id', $request->foto_utama_id)->update(['is_utama' => true]);
+            $kosan->fotos()->where('id', $request->foto_utama_id)
+                ->update(['is_utama' => true]);
         }
 
-        // 3. Upload new photos
+        // Upload foto baru
         if ($request->hasFile('fotos')) {
-            $is_utama = $kosan->fotos()->where('is_utama', true)->count() === 0;
+            $isUtama = $kosan->fotos()->where('is_utama', true)->count() === 0;
+
             foreach ($request->file('fotos') as $foto) {
                 $path = $foto->store('foto_kosan', 'public');
+
                 FotoKosan::create([
                     'kosan_id' => $kosan->id,
                     'foto' => $path,
-                    'is_utama' => $is_utama
+                    'is_utama' => $isUtama
                 ]);
-                $is_utama = false;
+
+                $isUtama = false;
             }
         }
 
-        // Ensure there is at least one main photo if any photos exist
-        if ($kosan->fotos()->count() > 0 && $kosan->fotos()->where('is_utama', true)->count() === 0) {
+        // Pastikan ada foto utama
+        if (
+            $kosan->fotos()->count() > 0 &&
+            $kosan->fotos()->where('is_utama', true)->count() === 0
+        ) {
             $firstFoto = $kosan->fotos()->first();
             $firstFoto->update(['is_utama' => true]);
         }
 
-        return redirect()->route('pemilik.kosan.index')->with('success', 'Kosan berhasil diupdate.');
+        return redirect()
+            ->route('pemilik.kosan.index')
+            ->with('success', 'Kosan berhasil diupdate.');
     }
 
-    public function destroy(Kosan $kosan)
+        public function destroy(Kosan $kosan)
     {
-        if ($kosan->user_id !== Auth::id())
+        if ($kosan->user_id !== Auth::id()) {
             abort(403);
+        }
 
+        // Hapus file foto dari storage
         foreach ($kosan->fotos as $foto) {
             Storage::disk('public')->delete($foto->foto);
         }
+
+        // Hapus data kos
         $kosan->delete();
 
-        return redirect()->route('pemilik.kosan.index')->with('success', 'Kosan berhasil dihapus.');
+        return redirect()
+            ->route('pemilik.kosan.index')
+            ->with('success', 'Kosan berhasil dihapus.');
     }
 }

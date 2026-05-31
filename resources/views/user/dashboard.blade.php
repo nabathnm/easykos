@@ -44,7 +44,7 @@
                             ][$pemesanan->status] ?? 'bg-gray-200';
                         @endphp
 
-                        <a href="{{ route('user.pemesanan.show', $pemesanan) }}" class="nb-card nb-card-hover block p-4 md:p-5">
+                        <a href="{{ route('user.pemesanan.show', $pemesanan->id) }}" class="nb-card nb-card-hover block p-4 md:p-5">
                             <div class="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)] md:items-start">
                                 <div class="h-48 w-full shrink-0 overflow-hidden border-2 border-black bg-gray-200 md:h-28 md:w-40">
                                     @if($pemesanan->kosan && $pemesanan->kosan->fotoUtama)

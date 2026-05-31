@@ -59,7 +59,7 @@
                     <div class="nb-card-soft p-4 md:p-5">
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="min-w-0">
-                                <a href="{{ route('kosan.show', $pemesanan->kosan) }}" class="block text-3xl font-black leading-none">
+                                <a href="{{ route('kosan.show', $pemesanan->kosan->id ?? $pemesanan->kosan_id) }}" class="block text-3xl font-black leading-none">
                                     {{ $pemesanan->kosan->nama_kosan }}
                                 </a>
                                 <p class="mt-2 text-lg font-medium">{{ $pemesanan->kosan->alamat }}, {{ $pemesanan->kosan->kota }}</p>
@@ -136,7 +136,7 @@
             <div class="flex gap-3">
                 <a href="{{ route('user.dashboard') }}" class="nb-btn flex-1">Kembali</a>
                 @if($pemesanan->status === 'pending')
-                    <form method="POST" action="{{ route('user.pemesanan.destroy', $pemesanan) }}" class="flex-1" onsubmit="return confirm('Yakin ingin membatalkan pemesanan ini?')">
+                    <form method="POST" action="{{ route('user.pemesanan.destroy', $pemesanan->id) }}" class="flex-1" onsubmit="return confirm('Yakin ingin membatalkan pemesanan ini?')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="nb-btn nb-btn-danger w-full">Batalkan Pemesanan</button>

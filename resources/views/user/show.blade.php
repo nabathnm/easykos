@@ -144,7 +144,7 @@
                                 @if($sudahUlasan)
                                     <p class="nb-kicker mt-4">Kamu sudah memberikan ulasan untuk kosan ini.</p>
                                 @elseif($bisaUlas)
-                                    <form action="{{ route('user.kosan.ulasan', $kosan) }}" method="POST" class="mt-5 space-y-3">
+                                    <form action="{{ route('user.kosan.ulasan', $kosan->id) }}" method="POST" class="mt-5 space-y-3">
                                         @csrf
                                         <div x-data="{ rating: 0, hover: 0 }">
                                             <label class="nb-label">Rating</label>

@@ -9,23 +9,48 @@ abstract class Controller
      */
     protected function apiCall($method, $endpoint, $data = [])
     {
-        $http = \Illuminate\Support\Facades\Http::withHeaders([
-            'Accept' => 'application/json',
-        ]);
+        $uri = '/api/' . ltrim($endpoint, '/');
+        
+        // Prepare request parameters/query/body
+        $request = \Illuminate\Http\Request::create($uri, $method, $data);
+        $request->headers->set('Accept', 'application/json');
 
         if (auth()->check()) {
-            // Generate a JWT token for the currently authenticated web user
             $token = auth('api')->login(auth()->user());
-            $http = $http->withToken($token);
+            $request->headers->set('Authorization', 'Bearer ' . $token);
         }
 
-        $url = url('/api/' . ltrim($endpoint, '/'));
+        $originalRequest = request();
         
-        $response = $method === 'GET' 
-            ? $http->get($url, $data) 
-            : $http->$method($url, $data);
+        // Temporarily swap the request instance in the container
+        app()->instance('request', $request);
 
-        return $response;
+        try {
+            $response = app('router')->dispatch($request);
+        } finally {
+            // Restore original request
+            app()->instance('request', $originalRequest);
+        }
+
+        return new class($response) {
+            private $response;
+            public function __construct($response) {
+                $this->response = $response;
+            }
+            public function successful() {
+                return $this->response->isSuccessful();
+            }
+            public function json($key = null, $default = null) {
+                $data = json_decode($this->response->getContent(), true);
+                if (is_null($key)) {
+                    return $data;
+                }
+                return data_get($data, $key, $default);
+            }
+            public function status() {
+                return $this->response->getStatusCode();
+            }
+        };
     }
 
     protected function paginateApiResponse($responseData, $request)

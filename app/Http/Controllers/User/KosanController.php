@@ -45,10 +45,11 @@ class KosanController extends Controller
         $kosans = $this->paginateApiResponse($kosanResponse->json(), $request);
         
         $fasilitasResponse = $this->apiCall('GET', 'fasilitas');
-        $fasilitasList = json_decode(json_encode($fasilitasResponse->json()['data']['data'] ?? []));
-        if (empty($fasilitasList)) {
-            $fasilitasList = json_decode(json_encode($fasilitasResponse->json()['data'] ?? [])); // Fallback if no pagination in fasilitas
-        }
+        $resData = $fasilitasResponse->json()['data'] ?? [];
+        $fasilitasList = isset($resData['data']) && is_array($resData['data'])
+            ? $resData['data']
+            : $resData;
+        $fasilitasList = json_decode(json_encode($fasilitasList));
         
         return view('user.home', compact('kosans', 'fasilitasList'));
     }
@@ -67,10 +68,11 @@ class KosanController extends Controller
         $kosans = $this->paginateApiResponse($kosanResponse->json(), $request);
             
         $fasilitasResponse = $this->apiCall('GET', 'fasilitas');
-        $fasilitasList = json_decode(json_encode($fasilitasResponse->json()['data']['data'] ?? []));
-        if (empty($fasilitasList)) {
-            $fasilitasList = json_decode(json_encode($fasilitasResponse->json()['data'] ?? []));
-        }
+        $resData = $fasilitasResponse->json()['data'] ?? [];
+        $fasilitasList = isset($resData['data']) && is_array($resData['data'])
+            ? $resData['data']
+            : $resData;
+        $fasilitasList = json_decode(json_encode($fasilitasList));
 
         return view('user.home', compact('kosans', 'fasilitasList'));
     }

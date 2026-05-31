@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ route('kosan.show', $kosan) }}" class="nb-btn py-1 px-2 text-base">{{ $kosan->nama_kosan }}</a>
+            <a href="{{ route('kosan.show', $kosan->id) }}" class="nb-btn py-1 px-2 text-base">{{ $kosan->nama_kosan }}</a>
             <span class="nb-kicker">/</span>
             <span class="text-3xl font-black leading-none">Ajukan Pemesanan</span>
         </div>
@@ -84,7 +84,7 @@
                 </section>
 
                 <div class="flex gap-3">
-                    <a href="{{ route('kosan.show', $kosan) }}" class="nb-btn flex-1">Batal</a>
+                    <a href="{{ route('kosan.show', $kosan->id) }}" class="nb-btn flex-1">Batal</a>
                     <button type="submit" class="nb-btn nb-btn-primary flex-1">Ajukan Pemesanan</button>
                 </div>
             </form>
